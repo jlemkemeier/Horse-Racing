@@ -326,13 +326,15 @@ def train(x):
 def test_set():
     return np.array(nX[:,1], float32)
 
-#print(main(1, .01, 10, 10, "Adam"))
-#print(main(2, .01, 10, 10, "Adam"))
-#print(main(5, .01, 10, 10, "Adam"))
-#print(main(10, .01, 10, 10, "Adam"))
-#print(main(50, .01, 10, 10, "Adam"))
-print(main(1, .01, 10, 10, "Adam"))
-#print(main(500, .01, 10, 10, "Adam"))
+
+print(main(10, .01, 10, 10, "Adam"))
+print(main(25, .01, 10, 10, "Adam"))
+print(main(50, .01, 10, 10, "Adam"))
+print(main(100, .01, 10, 10, "Adam"))
+print(main(500, .01, 10, 10, "Adam"))
+print(main(1000, .01, 10, 10, "Adam"))
+print(main(10000, .01, 10, 10, "Adam"))
+print(main(50000, .01, 10, 10, "Adam"))
 
 
 
