@@ -35,8 +35,7 @@ def main(epochs, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
     make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, num_neurons_per_layer, optimizer)
     training_loss = train_neural_network(train_weights, epochs)
     testing_loss, test_input_fn = test_neural_network(test_weights)
-    
-    final_bank = 0#evaluate_bets(UData, test_input_fn)
+    final_bank = 0
     return (training_loss, testing_loss, final_bank)
 
 
@@ -216,6 +215,7 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
         )
     elif optimizer == "GradientDescent":
         classifier = tf.estimator.DNNClassifier(
+            model_dir = "Model/",
             feature_columns=feature_columns,
             hidden_units=np.full((num_hidden_layers),num_neurons_per_layer),
             optimizer=tf.train.GradientDescentOptimizer(lr),
