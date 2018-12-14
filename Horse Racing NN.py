@@ -254,9 +254,6 @@ def train_neural_network(train_weights, epochs):
     classifier.train(input_fn = train_input_fn)
 
 
-    print("TRAINING LOSS", epochs, "HELLO", classifier.evaluate(input_fn=train_input_fn)["loss"])
-    print("AVERAGE TRAINING LOSS", epochs, "HELLO", classifier.evaluate(input_fn=train_input_fn)["average_loss"])
-
     return classifier.evaluate(input_fn=train_input_fn)["average_loss"]
 
 
@@ -287,9 +284,6 @@ def test_neural_network(test_weights):
         shuffle=False
     )
     average_loss = classifier.evaluate(input_fn=test_input_fn)["average_loss"]
-    print("TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["loss"])
-    print("AVERAGE TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["average_loss"])
-    print("TESTING ACCURACY", "HELLO", classifier.evaluate(input_fn=test_input_fn)["accuracy"])
     return average_loss, test_input_fn
 
 
