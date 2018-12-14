@@ -33,11 +33,11 @@ def main(epochs, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
     (train_weights, test_weights) = weight_win_data(UData)
     feature_columns, weight_column = make_feature_columns()
     make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, num_neurons_per_layer, optimizer)
-    train_neural_network(train_weights, epochs)
-    accuracy, test_input_fn = test_neural_network(test_weights)
+    training_loss = train_neural_network(train_weights, epochs)
+    testing_loss, test_input_fn = test_neural_network(test_weights)
     
-    final_bank = evaluate_bets(UData, test_input_fn)
-    return (accuracy, final_bank)
+    final_bank = 0#evaluate_bets(UData, test_input_fn)
+    return (training_loss, testing_loss, final_bank)
 
 
 
@@ -66,8 +66,7 @@ def list_types_in_attributes(UData):
                 vocab.append(UData[x][y])
         total_vocab.append(vocab)
         num_vocab.append(len(vocab))
-    print(total_vocab)
-    print(num_vocab)
+
 
     var_num = 0
     text_file = open("Data/Distances.txt", "w")
@@ -118,8 +117,6 @@ def convert_place_to_win(UData):
     return np.vstack((UData[0], [win(x) for x in UData[1:]]))
 
 
-# In[9]:
-
 def split_train_vs_test(UData):
     global trainX 
     global trainY
@@ -129,20 +126,6 @@ def split_train_vs_test(UData):
     testX = np.array([x for x in UData[1:,:-7] if not train(x)]) 
     trainY = np.array([win(y) for y in UData[1:,(0,-1)] if train(y)])
     testY = np.array([win(y) for y in UData[1:,(0,-1)] if not train(y)])
-    print(len(trainX))
-    print(len(trainY))
-    print(len(testX))
-    print(len(testY))
-
-
-
-
-#X = np.delete(UData, -1, axis=1)[1:-1]
-#Y = [win(x) for x in UData[1:-1,-1]]
-#print('tX', X[0])
-#print('tY', Y[0])
-#print(len(X))
-#print(len(Y))
 
 
 
@@ -182,7 +165,7 @@ def make_feature_columns():
     global num_gaits 
     global num_track_conditions
     global num_medicines
-    print("1Here")
+    #print("1Here")
     weight_column = tf.feature_column.numeric_column(key = 'weight')
 
     distance_col = tf.feature_column.categorical_column_with_vocabulary_file(key="Distance", vocabulary_file="Data/Distances.txt",
@@ -224,11 +207,12 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
 
     if optimizer == "Adam":
         classifier = tf.estimator.DNNClassifier(
+            model_dir = "Model/",
             feature_columns=feature_columns,
             hidden_units=np.full((num_hidden_layers),num_neurons_per_layer),
             optimizer=tf.train.AdamOptimizer(lr),
             n_classes=2,
-            weight_column = weight_column
+            weight_column = weight_column,
         )
     elif optimizer == "GradientDescent":
         classifier = tf.estimator.DNNClassifier(
@@ -240,7 +224,6 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
         )
     else:
       nERROR("Optimizer not found")
-    print("5Here")
 
 
 def train_neural_network(train_weights, epochs):
@@ -263,23 +246,25 @@ def train_neural_network(train_weights, epochs):
            "JWP": trainX[:,13].astype(float), 
            "TWP": trainX[:,14].astype(float), 
            },
-        batch_size=32,
         y=trainY[:,-1].astype(int),
         num_epochs=epochs,
         shuffle=True,
     )
-    print("6Here")
-
 
     classifier.train(input_fn = train_input_fn)
-    print("7Here")
+
+
+    print("TRAINING LOSS", epochs, "HELLO", classifier.evaluate(input_fn=train_input_fn)["loss"])
+    print("AVERAGE TRAINING LOSS", epochs, "HELLO", classifier.evaluate(input_fn=train_input_fn)["average_loss"])
+
+    return classifier.evaluate(input_fn=train_input_fn)["average_loss"]
+
+
 
 
 
 def test_neural_network(test_weights):
     global classifier
-
-    # Define the test inputs
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
          x={"weight": test_weights,
             "Distance": testX[:,1], 
@@ -301,64 +286,33 @@ def test_neural_network(test_weights):
         num_epochs=1,
         shuffle=False
     )
-    
-    
-
-
-    # Evaluate accuracy
-    accuracy_score = classifier.evaluate(input_fn=test_input_fn)["average_loss"]
-    #print(test_input_fn[0]['probabilities'])
-    print("\nTest Accuracy: {0:f}%\n".format(accuracy_score*100))
-    print("10Here")
-    return accuracy_score, test_input_fn
+    accuracy_loss = classifier.evaluate(input_fn=test_input_fn)["average_loss"]
+    print("TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["loss"])
+    print("AVERAGE TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["average_loss"])
+    print("TESTING ACCURACY", "HELLO", classifier.evaluate(input_fn=test_input_fn)["accuracy"])
+    return average_loss, test_input_fn
 
 
 def evaluate_bets(UData, test_input_fn):
-
-
     prob_bet = .4
-
     ds_predict_tf = classifier.predict(input_fn = test_input_fn)
-
-    print('Predictions: {}'.format(str(ds_predict_tf)))
-    #print(ds_predict_tf[0])
-    #print(ds_predict_tf[0]['probabilities'])
-    #print(ds_predict_tf[0]['probabilities'][1])
     z = 0
     bank = 0
     bank_history = []
     bank_history.append(bank)
     for i in ds_predict_tf:
-        #print(i)
         if i['probabilities'][1] > prob_bet:
             bank -= 2
             if int(testY[z][1]) == 1:
                 temp = [y for y in UData if testY[z][0] == y[0]]
-                
                 bank += float(temp[0][-7])
-                #print("\nWINNING BET")
-                print("Neural Net Probability", i['probabilities'][1])
-                #print(temp)
-                #print("odds", temp[0][-7])
-            else:
-                #print("\nLOSING BET")
-                print("Neural Net Probability", i['probabilities'][1])
             bank_history.append(bank)
-
-                
-                
-            
-            #print("New amount", bank)
         z += 1
-    print("final",bank)
-
-
 
 
     import matplotlib.pyplot as plt
-    plt.plot(bank_history) # plotting by columns
-
-    plt.show()
+    #plt.plot(bank_history)
+    #plt.show()
     return bank
 
 
@@ -378,8 +332,16 @@ def train(x):
 def test_set():
     return np.array(nX[:,1], float32)
 
+#print(main(1, .01, 10, 10, "Adam"))
+#print(main(2, .01, 10, 10, "Adam"))
+#print(main(5, .01, 10, 10, "Adam"))
+#print(main(10, .01, 10, 10, "Adam"))
+#print(main(50, .01, 10, 10, "Adam"))
+print(main(1000, .01, 10, 10, "Adam"))
+#print(main(500, .01, 10, 10, "Adam"))
 
-print(main(500, .01, 10, 10, "Adam"))
+
+
 
 
 
