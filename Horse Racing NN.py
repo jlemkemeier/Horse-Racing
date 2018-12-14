@@ -35,7 +35,7 @@ def main(epochs, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
     make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, num_neurons_per_layer, optimizer)
     training_loss = train_neural_network(train_weights, epochs)
     testing_loss, test_input_fn = test_neural_network(test_weights)
-    final_bank = 0
+    final_bank = 0#evaluate_bets(UData, test_input_fn)
     return (training_loss, testing_loss, final_bank)
 
 
@@ -286,7 +286,7 @@ def test_neural_network(test_weights):
         num_epochs=1,
         shuffle=False
     )
-    accuracy_loss = classifier.evaluate(input_fn=test_input_fn)["average_loss"]
+    average_loss = classifier.evaluate(input_fn=test_input_fn)["average_loss"]
     print("TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["loss"])
     print("AVERAGE TESTING LOSS", "HELLO", classifier.evaluate(input_fn=test_input_fn)["average_loss"])
     print("TESTING ACCURACY", "HELLO", classifier.evaluate(input_fn=test_input_fn)["accuracy"])
@@ -337,7 +337,7 @@ def test_set():
 #print(main(5, .01, 10, 10, "Adam"))
 #print(main(10, .01, 10, 10, "Adam"))
 #print(main(50, .01, 10, 10, "Adam"))
-print(main(1000, .01, 10, 10, "Adam"))
+print(main(1, .01, 10, 10, "Adam"))
 #print(main(500, .01, 10, 10, "Adam"))
 
 
