@@ -60,7 +60,7 @@ def main():
   feature_columns, weight_column = make_feature_columns()
 
   #builds and runs a neural network
-  print(test(1, .01, 50, 10, "Adam"))
+  print(test(10000, .01, 50, 10, "Adam"))
 
 
 
