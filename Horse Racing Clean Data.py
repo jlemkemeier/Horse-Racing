@@ -93,7 +93,6 @@ def add_finishing_place(total):
             date = total[x][0]
             race_num = total[x][18]
             place = np.vstack((place, position))
-
     return np.hstack((total, place))
 
 #sorts the races by date
@@ -105,15 +104,12 @@ def sort_races(total):
         month = total[x][0][:-6]
         race_num = total[x][18]
         place = total[x][-1]
-
         if len(month) != 2:
             if len(month) == 1:
                 month = '0' + month
             else:
                 print("error on reading data line:", x, "data:", total[x][0])
-        
         date = np.vstack((date, year+month+day+race_num+place))
-
     test1 = np.hstack((date, total))
     test2 = np.vstack((np.array([test1[0]]), test1[test1[:,0].argsort()]))#np.sort(test1[1:], axis=0)))
     total_sorted = test2[:-1]
@@ -161,12 +157,9 @@ def adding_num_horses_in_race(UData, total):
             num_horse_race = np.vstack((num_horse_race, [num_horses]))
         x = y
     average_num_horses_race = float(total_hn)/total_races
-
     for x in range(1, len(UData)):
         if not len(UData[x][pp_i]) == 1:
             delete_rows.add(x)
-
-
     for x in range(1, len(UData)):
         if '' in UData[x][pay_i]:
             delete_rows.add(x)
@@ -221,8 +214,6 @@ def calculating_horse_win_percentage(UData):
         else:
             new_horse = np.vstack((new_horse, [0]))
             horse_win_per = np.vstack((horse_win_per, [wins/float(races)]))
-
-
     horse_win_per = np.vstack(([horse_win_per[0]],[[win_per(x)] for x in horse_win_per[1:]]))
 
 #calculating the jockeys win percentage
@@ -241,8 +232,6 @@ def calculating_jockey_win_percentage(UData):
             jockey_win_per = np.vstack((jockey_win_per, [-1]))
         else:
             jockey_win_per = np.vstack((jockey_win_per, [float(wins)/float(races)]))
-
-            
     jockey_win_per = np.vstack(([jockey_win_per[0]],[[win_per(x)] for x in jockey_win_per[1:]]))
 
 #trainer #calculating the jockeys win percentage
@@ -267,7 +256,6 @@ def calculating_trainer_win_percentage(UData):
 #adds all the new rows and drops the old ones
 def add_and_delete_rows(UData):
     UData = np.delete(UData, (8, 9, 10, 11), axis=1)
-
     UData = np.insert(UData, [3], num_horse_race, axis=1)
     UData =  np.insert(UData, [8], last_race, axis=1)
     UData = np.insert(UData, [9], second_last_race, axis=1)
@@ -276,7 +264,6 @@ def add_and_delete_rows(UData):
     UData = np.insert(UData, [12], horse_win_per, axis=1)
     UData = np.insert(UData, [13], jockey_win_per, axis=1)
     UData = np.insert(UData, [14], trainer_win_per, axis=1)
-
     UData = np.delete(UData, list(delete_rows), axis=0)
     return UData
 
