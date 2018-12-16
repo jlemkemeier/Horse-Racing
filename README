@@ -1,0 +1,5 @@
+This respository takes horse races data from Scarborough Downs and attempts to make a profit from it.
+
+The "Horse Racing Clean Data.py" takes the raw data races180509.csv and cleans the data. This involves filling in missing values and calculating different features we want as input to our neural network. It puts the clean data into CleanData.csv. 
+
+The "Horse Racing NN.py" takes in the file CleanData.csv. It makes text files put into the Data file which record all of the values in non-numerical features. This allows tensorflow to convert them into numerical features. Then this file builds and runs the neural network. It tests the model both for its loss function and how well it would preform it it bet on the testing races. 
