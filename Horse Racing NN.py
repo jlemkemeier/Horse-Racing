@@ -9,37 +9,94 @@ import csv as csv
 import pandas as pd
 import sys
 
+
+"""
+Local Variables
+"""
+#All Data
+UData = 0
+#Training and Testing Data
 trainX = trainY = testX = testY = 0
+#Number of categories for each non-numeric attribute
 num_distances = num_classes = num_gaits = num_track_conditions = num_medicines = 0
+#DNN
 classifier = 0
+#ID of which data to split the training and testing data
 id_split = "2017032550"
+#Weights to weight winning horses higher
+train_weights = test_weights = 0
+#Input for the neural network with all columns being numerical
+feature_columns = weight_column = 0
 
 
+"""
+Main Function
+"""
+def main():
+
+  #clarifies which global variables will be used
+  global UData
+  global feature_columns
+  global weight_column
+  global train_weights
+  global test_weights
+
+  #reads in data
+  UData = read_in_data("Data/CleanData.csv")
+
+  #itimizes all the non-numerical categories into text files
+  list_types_in_attributes(UData)
+
+  #converts the place column to a win column
+  UData = convert_place_to_win(UData)
+
+  #splits train and test data
+  split_train_vs_test(UData)
+
+  #weights the wins in order to incentives the neural network to predict them
+  (train_weights, test_weights) = weight_win_data(UData)
+
+  #builds inputs to the neural network by adding weights and making all columns numerical
+  feature_columns, weight_column = make_feature_columns()
+
+  #builds and runs a neural network
+  print(test(1, .01, 50, 10, "Adam"))
 
 
 
 """
+This tests a neural network taking the following arguments
 epochs: number of training iterations
 lr: learning rate
 num_hidden_layers: number of hidden layers in nueral network
 num_neurons_per_layer: number of neurons per layer
 Optimizer: Either "Adam" or "GradientDescent"
 """
-def main(epochs, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
-    UData = read_in_data("Data/CleanData.csv")
-    list_types_in_attributes(UData)
-    UData = convert_place_to_win(UData)
-    split_train_vs_test(UData)
-    (train_weights, test_weights) = weight_win_data(UData)
-    feature_columns, weight_column = make_feature_columns()
+def test(epochs, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
+    global UData
+    global feature_columns
+    global weight_column
+    global train_weights
+    global test_weights
+
+    #makes neural network
     make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, num_neurons_per_layer, optimizer)
+    
+    #trains neural network recording training loss
     training_loss = train_neural_network(train_weights, epochs)
+
+    #tests neural network recording testing loss and predictions
     testing_loss, test_input_fn = test_neural_network(test_weights)
-    final_bank = 0#evaluate_bets(UData, test_input_fn)
+
+    #evaluates neural network performance if it bet for a year
+    final_bank = evaluate_bets(UData, test_input_fn)
+
     return (training_loss, testing_loss, final_bank)
 
 
-
+"""
+Reads in file with Data
+"""
 def read_in_data(filename):
     with open(filename, 'rb') as f:
         mycsv = csv.reader(f)
@@ -48,7 +105,10 @@ def read_in_data(filename):
     UData = np.array(mycsv)
     return UData
 
-
+"""
+Lists the categories in each non-numberic attribute into a text file
+This allows tensorflow to convert these categories into different types of feature columns
+"""
 def list_types_in_attributes(UData):
     global num_distances 
     global num_classes 
@@ -106,16 +166,9 @@ def list_types_in_attributes(UData):
 
 
 
-
-
-
-
-
-#Convert Place to win 
-def convert_place_to_win(UData):
-    return np.vstack((UData[0], [win(x) for x in UData[1:]]))
-
-
+"""
+This splits training data from testing data
+"""
 def split_train_vs_test(UData):
     global trainX 
     global trainY
@@ -126,8 +179,10 @@ def split_train_vs_test(UData):
     trainY = np.array([win(y) for y in UData[1:,(0,-1)] if train(y)])
     testY = np.array([win(y) for y in UData[1:,(0,-1)] if not train(y)])
 
-
-
+"""
+Weights the winning horse data higher. This prevents the neural network from
+just predicting all horse lose. 
+"""
 def weight_win_data(UData):
     global trainX 
     global trainY
@@ -155,16 +210,15 @@ def weight_win_data(UData):
 
     return (train_weights, test_weights)
       
-
-
-
+"""
+Converts all feature columns into inputs feasable for the neural network
+"""
 def make_feature_columns():
     global num_distances 
     global num_classes 
     global num_gaits 
     global num_track_conditions
     global num_medicines
-    #print("1Here")
     weight_column = tf.feature_column.numeric_column(key = 'weight')
 
     distance_col = tf.feature_column.categorical_column_with_vocabulary_file(key="Distance", vocabulary_file="Data/Distances.txt",
@@ -197,7 +251,11 @@ def make_feature_columns():
 
     return (feature_columns, weight_column)
 
-
+"""
+We used a classfier for the neural network from tensorflow estimators. We first built a more in depth version, but realized that it just optimized by saying all
+the horses lose every race. In order to combat this, we had to add a weight column in order to incentives it to predict winning horses. This could only be done 
+ by using a DNN from a tensorflow estimator. 
+"""
 def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, num_neurons_per_layer, optimizer):
 
 
@@ -206,7 +264,6 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
 
     if optimizer == "Adam":
         classifier = tf.estimator.DNNClassifier(
-            model_dir = "Model/",
             feature_columns=feature_columns,
             hidden_units=np.full((num_hidden_layers),num_neurons_per_layer),
             optimizer=tf.train.AdamOptimizer(lr),
@@ -215,7 +272,6 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
         )
     elif optimizer == "GradientDescent":
         classifier = tf.estimator.DNNClassifier(
-            model_dir = "Model/",
             feature_columns=feature_columns,
             hidden_units=np.full((num_hidden_layers),num_neurons_per_layer),
             optimizer=tf.train.GradientDescentOptimizer(lr),
@@ -225,7 +281,9 @@ def make_neural_network(feature_columns, weight_column, lr, num_hidden_layers, n
     else:
       nERROR("Optimizer not found")
 
-
+"""
+Trains the neural network 
+"""
 def train_neural_network(train_weights, epochs):
     global classifier
 
@@ -257,9 +315,9 @@ def train_neural_network(train_weights, epochs):
     return classifier.evaluate(input_fn=train_input_fn)["average_loss"]
 
 
-
-
-
+"""
+Tests the neural network
+"""
 def test_neural_network(test_weights):
     global classifier
     test_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -287,8 +345,12 @@ def test_neural_network(test_weights):
     return average_loss, test_input_fn
 
 
+"""
+Evaluates the model for all of the testing data in terms of betting.
+Bets $10 per bet
+"""
 def evaluate_bets(UData, test_input_fn):
-    prob_bet = .4
+    prob_bet = .8
     ds_predict_tf = classifier.predict(input_fn = test_input_fn)
     z = 0
     bank = 0
@@ -305,11 +367,14 @@ def evaluate_bets(UData, test_input_fn):
 
 
     import matplotlib.pyplot as plt
-    #plt.plot(bank_history)
-    #plt.show()
+    plt.plot(bank_history)
+    plt.show()
     return bank
 
 
+"""
+Returns 1 if horse won the race and 0 otherwise
+"""
 def win(x):
     if int(x[-1]) == 1:
         x[-1] = 1
@@ -317,25 +382,22 @@ def win(x):
         x[-1] = 0
     return x
 
+"""
+Returns True if it was passed an ID that should be part of the training data, false otherwise
+"""
 def train(x):
     if int(x[0]) < int(id_split):
         return True
     return False
 
+"""
+Converts the place column to a win column
+"""
+def convert_place_to_win(UData):
+    return np.vstack((UData[0], [win(x) for x in UData[1:]]))
 
-def test_set():
-    return np.array(nX[:,1], float32)
 
-
-print(main(10, .01, 10, 10, "Adam"))
-print(main(25, .01, 10, 10, "Adam"))
-print(main(50, .01, 10, 10, "Adam"))
-print(main(100, .01, 10, 10, "Adam"))
-print(main(500, .01, 10, 10, "Adam"))
-print(main(1000, .01, 10, 10, "Adam"))
-print(main(10000, .01, 10, 10, "Adam"))
-print(main(50000, .01, 10, 10, "Adam"))
-
+main()
 
 
 

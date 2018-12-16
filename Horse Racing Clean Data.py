@@ -30,39 +30,57 @@ trainer_win_per = np.array([["trainer win per"]])
 average_num_horses_race =0
 
 
-
+"""
+This is the main file for the program which cleans the raw gathered Data
+"""
 def main():
+
+    #read in data
     with open("Data/races180509.csv", 'rb') as f:
         mycsv = csv.reader(f)
         mycsv = list(mycsv)
-        
     total = np.array(mycsv)
 
-    print(len(total))
-    print(total[0])
-
+    #adds a finishing place for each horse
     total = add_finishing_place(total)
+
+    #sorts the races by date
     total_sorted = sort_races(total)
+
+    #extracts useful columns
     UData = extract_useful_info(total_sorted)
+
+    #adds values for when the horse did not take medicine
     add_value_for_no_medicine(UData)
+
+    #adds the number of horses in the race
     adding_num_horses_in_race(UData, total)
+
+    #converts the odds of the horse winning from strings to numbers
     converting_odds_to_numerical(UData)
+
+    #converts each of the horses previous race results into their own column
     converting_previous_races(UData)
+
+    #calculating the horse win percentage
     calculating_horse_win_percentage(UData)
+
+    #calculating the jockeys win percentage
     calculating_jockey_win_percentage(UData)
+
+    #calculating the trainers win percentage
     calculating_trainer_win_percentage(UData)
 
+    #adds all the new rows and drops the old ones
     UData = add_and_delete_rows(UData)
+
+    #saves the data 
     save_data(UData)
-
-
-
 
 #adding finishing place
 def add_finishing_place(total):
     place = np.array([["place"]])
     position = 0
-    #for x in range(1, len(total)):
     date = total[0][0]
     race_num = total[0][18]
     for x in range(1, len(total)):
@@ -75,16 +93,13 @@ def add_finishing_place(total):
             date = total[x][0]
             race_num = total[x][18]
             place = np.vstack((place, position))
-    print("print what is happening", total[0])
 
     return np.hstack((total, place))
 
-
-#sort the races
+#sorts the races by date
 def sort_races(total):
     date = np.array([["ID"]])
     for x in range(1, len(total)):
-        #print(total[x])
         year = total[x][0][-4:]
         day = total[x][0][-6:-4]
         month = total[x][0][:-6]
@@ -96,21 +111,16 @@ def sort_races(total):
                 month = '0' + month
             else:
                 print("error on reading data line:", x, "data:", total[x][0])
-        #print(month, day, year)
         
         date = np.vstack((date, year+month+day+race_num+place))
 
     test1 = np.hstack((date, total))
     test2 = np.vstack((np.array([test1[0]]), test1[test1[:,0].argsort()]))#np.sort(test1[1:], axis=0)))
     total_sorted = test2[:-1]
-
     return total_sorted
 
-
-
-
+#extracts useful columns
 def extract_useful_info(total_sorted):
-    print("GAWDDAMN IT TELL ME WHAT IS HAPPENING", total_sorted[0])
     UData = total_sorted[:,[0, 23,22,20,24,5,4,18,17, 3, 14, 15, 27, 28, 29, 30, 31, 32, -1]]
     odds_i = 7
     last_three_race_i = 8
@@ -123,16 +133,11 @@ def extract_useful_info(total_sorted):
     pay_i = [12,13,14,15,16,17]
     return UData
 
-
-
-#Add a value for no medicine
+#adds values for when the horse did not take medicine
 def add_value_for_no_medicine(UData):
     for x in UData:
         if x[medicine_i] == "":
             x[medicine_i] = "NA"
-
-
-
 
 #adding number of horses in race
 def adding_num_horses_in_race(UData, total):
@@ -141,7 +146,6 @@ def adding_num_horses_in_race(UData, total):
     x = 1
     total_hn = 0
     total_races = 0
-    #for x in range(1, len(total)):
     while x < len(total):
         date = total[x][0]
         race_num = total[x][18]
@@ -167,13 +171,6 @@ def adding_num_horses_in_race(UData, total):
         if '' in UData[x][pay_i]:
             delete_rows.add(x)
 
-
-
-
-
-
-
-
 #converting odds to numerical
 def converting_odds_to_numerical(UData):
     for x in range(1, len(UData)):
@@ -182,14 +179,9 @@ def converting_odds_to_numerical(UData):
             delete_rows.add(x)
         else:
             UData[x][odds_i] = float(odds[1])/float(odds[0])
-        
-        
-    
 
 
-
-
-#converting last races
+#converts each of the horses previous race results into their own column
 def converting_previous_races(UData):
     global last_race, second_last_race, third_last_race
     for x in range(1, len(UData)):
@@ -205,25 +197,15 @@ def converting_previous_races(UData):
         third_last_race = np.vstack((third_last_race, [int(races[2])]))
 
 
-
-
 def win_per(x):
-    #print(x)
     if float(x[0]) == -1:
         return 1/average_num_horses_race
     return float(x[0])
 
-
-
-
-#horse win percentage
+#calculating the horse win percentage
 def calculating_horse_win_percentage(UData):
     global horse_win_per
     global new_horse
-    print("start calculations")
-    print("win_i", win_i)
-    print("column titles", UData[0])
-    print(UData[:,win_i])
     for x in range(1, len(UData)):
         horse_name = UData[x][horse_name_i]
         wins = 0
@@ -239,22 +221,11 @@ def calculating_horse_win_percentage(UData):
         else:
             new_horse = np.vstack((new_horse, [0]))
             horse_win_per = np.vstack((horse_win_per, [wins/float(races)]))
-        if x == 1:
-            print(horse_win_per[x])
+
 
     horse_win_per = np.vstack(([horse_win_per[0]],[[win_per(x)] for x in horse_win_per[1:]]))
-   #print("Here1", horse_win_per)
 
-
-
-
-
-    
-
-
-
-
-#jockey win percentage
+#calculating the jockeys win percentage
 def calculating_jockey_win_percentage(UData):
     global jockey_win_per
     for x in range(1, len(UData)):
@@ -273,19 +244,8 @@ def calculating_jockey_win_percentage(UData):
 
             
     jockey_win_per = np.vstack(([jockey_win_per[0]],[[win_per(x)] for x in jockey_win_per[1:]]))
-    #print("HERE2", jockey_win_per)
 
-
-
-
-
-
-
-
-
-
-
-#trainer win percentage
+#trainer #calculating the jockeys win percentage
 def calculating_trainer_win_percentage(UData):
     global trainer_win_per
     for x in range(1, len(UData)):
@@ -304,9 +264,7 @@ def calculating_trainer_win_percentage(UData):
 
     trainer_win_per = np.vstack(([trainer_win_per[0]],[[win_per(x)] for x in trainer_win_per[1:]]))
 
-
-
-
+#adds all the new rows and drops the old ones
 def add_and_delete_rows(UData):
     UData = np.delete(UData, (8, 9, 10, 11), axis=1)
 
@@ -322,6 +280,7 @@ def add_and_delete_rows(UData):
     UData = np.delete(UData, list(delete_rows), axis=0)
     return UData
 
+#saves the data 
 def save_data(UData):
     print(UData[0])
     df = pd.DataFrame(UData)
